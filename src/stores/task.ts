@@ -35,20 +35,43 @@ export const useTaskStore = create<TaskState>(set => ({
   },
   isLoading: false,
   setTasks: (filter, tasks) =>
-    set(state => ({
-      tasks: {
-        ...state.tasks,
-        [filter]: typeof tasks === 'function' ? tasks(state.tasks[filter]) : tasks,
-      },
-    })),
+    set(state => {
+      const newTasks = typeof tasks === 'function' ? tasks(state.tasks[filter]) : tasks;
+
+      // Remove duplicates based on task name
+      const uniqueTasks = newTasks.reduce((acc, task) => {
+        if (!acc.some(t => t.title === task.title)) {
+          acc.push(task);
+        }
+        return acc;
+      }, [] as Task[]);
+
+      return {
+        tasks: {
+          ...state.tasks,
+          [filter]: uniqueTasks,
+        },
+      };
+    }),
   addTask: task =>
-    set(state => ({
-      tasks: {
-        ...state.tasks,
-        [TaskFilter.ALL]: [task, ...state.tasks[TaskFilter.ALL]],
-        [TaskFilter.INCOMPLETE]: [task, ...state.tasks[TaskFilter.INCOMPLETE]],
-      },
-    })),
+    set(state => {
+      // Check if a task with the same name already exists
+      const taskExists = state.tasks[TaskFilter.ALL].some(t => t.title === task.title);
+
+      // If the task already exists, return the current state without changes
+      if (taskExists) {
+        return state;
+      }
+
+      // If the task doesn't exist, add it to the store
+      return {
+        tasks: {
+          ...state.tasks,
+          [TaskFilter.ALL]: [task, ...state.tasks[TaskFilter.ALL]],
+          [TaskFilter.INCOMPLETE]: [task, ...state.tasks[TaskFilter.INCOMPLETE]],
+        },
+      };
+    }),
   toggleTaskStatus: (updatedTask: Task) =>
     set(state => {
       // Update ALL filter
