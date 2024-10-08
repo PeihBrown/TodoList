@@ -26,13 +26,16 @@
         "src/*"
       ]
     },
-    "baseUrl": "."
+    "baseUrl": ".",
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "src",
+    ".storybook"
   ],
   "exclude": [
     "node_modules"
