@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useTaskStore } from '@/stores/task';
-import { Task } from '@/features/tasks/interfaces/task';
+import { Task, TaskFilter } from '@/features/tasks/interfaces/task';
 import { apiCall } from '@/ultis/api';
 
 export const useCreateTask = () => {
@@ -9,15 +9,18 @@ export const useCreateTask = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const validateTask = (title: string): string | null => {
-    if (title.trim() === '') {
-      return 'Task title cannot be empty';
-    }
-    if (tasks.some(task => task.title.toLowerCase() === title.toLowerCase())) {
-      return 'A task with this name already exists';
-    }
-    return null;
-  };
+  const validateTask = useCallback(
+    (title: string): string | null => {
+      if (title.trim() === '') {
+        return 'Task title cannot be empty';
+      }
+      if (tasks[TaskFilter.ALL].some(task => task.title.toLowerCase() === title.toLowerCase())) {
+        return 'A task with this name already exists';
+      }
+      return null;
+    },
+    [tasks]
+  );
 
   const handleAddTask = useCallback(async () => {
     const validationError = validateTask(newTaskTitle);
@@ -44,12 +47,12 @@ export const useCreateTask = () => {
       addTask(createdTask);
       setNewTaskTitle('');
     } catch (error) {
-      console.error("Error creating task:", error);
+      console.error('Error creating task:', error);
       setError('Failed to create task. Please try again.');
     } finally {
       setIsCreating(false);
     }
-  }, [newTaskTitle, addTask, tasks]);
+  }, [newTaskTitle, addTask, validateTask]);
 
   return {
     newTaskTitle,

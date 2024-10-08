@@ -18,70 +18,68 @@ export const useGetTasks = (initialTasks: Task[]) => {
   } = useTaskStore();
 
   useEffect(() => {
-    setTasks(initialTasks);
+    setTasks(TaskFilter.ALL, initialTasks);
   }, [initialTasks, setTasks]);
 
-  const fetchTasks = useCallback(async (currentPage: number, currentFilter: TaskFilter) => {
-    setIsLoading(true);
-    try {
-      const params: Record<string, string> = {
-        page: currentPage.toString(),
-        limit: '10',
-      };
+  const fetchTasks = useCallback(
+    async (currentFilter: TaskFilter) => {
+      const currentPage = page[currentFilter];
+      setIsLoading(true);
+      try {
+        const params: Record<string, string> = {
+          page: currentPage.toString(),
+          limit: '10',
+        };
 
-      if (currentFilter === TaskFilter.COMPLETED) {
-        params.isComplete = 'true';
-      } else if (currentFilter === TaskFilter.INCOMPLETE) {
-        params.isComplete = 'false';
+        if (currentFilter === TaskFilter.COMPLETED) {
+          params.isComplete = 'true';
+        } else if (currentFilter === TaskFilter.INCOMPLETE) {
+          params.isComplete = 'false';
+        }
+
+        const newTasks = await apiCall<Task[]>('tasks', {
+          method: 'GET',
+          params,
+        });
+
+        setIsLoading(false);
+        setHasMore(currentFilter, newTasks.length === 10);
+        setTasks(currentFilter, prevTasks => [...prevTasks, ...newTasks]);
+        return newTasks;
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        setIsLoading(false);
+        return undefined;
       }
-
-      const newTasks = await apiCall<Task[]>('tasks', { 
-        method: 'GET',
-        params,
-      });
-
-      setIsLoading(false);
-      setHasMore(newTasks.length === 10);
-      if (currentPage === 1) {
-        setTasks(newTasks);
-      } else {
-        setTasks((prevTasks) => [...prevTasks, ...newTasks]);
-      }
-      return newTasks;
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-      setIsLoading(false);
-      return undefined;
-    }
-  }, [setIsLoading, setHasMore, setTasks]);
-
-  useEffect(() => {
-    if (page > 1) {
-      fetchTasks(page, filter);
-    }
-  }, [fetchTasks, filter, page]);
+    },
+    [page, setIsLoading, setHasMore, setTasks]
+  );
 
   const handleFilterChange = useCallback(
     (newFilter: TaskFilter) => {
       setFilter(newFilter);
-      setPage(1);
-      fetchTasks(1, newFilter);
+      if (tasks[newFilter].length < 10) {
+        setPage(newFilter, 1);
+        fetchTasks(newFilter);
+      }
     },
-    [setFilter, setPage, fetchTasks]
+    [setFilter, setPage, fetchTasks, tasks]
   );
 
   const fetchMoreTasks = useCallback(() => {
-    if (!isLoading && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchTasks(nextPage, filter);
+    if (!isLoading && hasMore[filter]) {
+      const nextPage = page[filter] + 1;
+      setPage(filter, nextPage);
+      fetchTasks(filter);
     }
   }, [isLoading, hasMore, page, setPage, fetchTasks, filter]);
 
+  const filteredTasks = useMemo(() => tasks[filter], [tasks, filter]);
+
   return {
-    tasks,
+    tasks: filteredTasks,
     filter,
-    hasMore,
+    hasMore: hasMore[filter],
     isLoading,
     handleFilterChange,
     fetchMoreTasks,

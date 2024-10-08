@@ -3,7 +3,7 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 interface FetchOptions {
   method: HttpMethod;
   headers?: Record<string, string>;
-  body?: any;
+  body?: Record<string, unknown>;
   params?: Record<string, string>;
 }
 
